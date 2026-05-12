@@ -1,59 +1,424 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<parent>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.3</version>
-		<relativePath/> <!-- lookup parent from repository -->
-	</parent>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.saga.choreography</groupId>
-	<artifactId>ecommerce-saga-choreography</artifactId>
-	<version>1.0.0</version>
-	<packaging>pom</packaging>
+    <groupId>com.saga.choreography</groupId>
+    <artifactId>ecommerce-saga-choreography</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
 
-	<name>E-commerce Saga Choreography</name>
-	<description>Microservices demonstrating Choreography-based Saga pattern</description>
-	<modules>
-		<module>common-lib</module>
-		<module>payment-service</module>
-		<module>inventory-service</module>
-		<module>notification-service</module>
-		<module>order-service</module>
-	</modules>
+    <name>E-commerce Saga Choreography</name>
+    <description>
+        <!--
+        A complete implementation of Choreography-based Saga pattern for e-commerce.
+        Contains 4 microservices: Order, Payment, Inventory, and Notification.
+        Services communicate asynchronously via events without a central coordinator.
 
-	<properties>
-		<java.version>21</java.version>
-	</properties>
+        Key Features:
+        - Event-driven architecture using Spring Cloud Stream (RabbitMQ/Kafka)
+        - Distributed tracing with Micrometer
+        - Circuit breakers with Resilience4j
+        - Database per service pattern
+        - Docker containerization
+        - Prometheus & Grafana monitoring
+        -->
+    </description>
+    <url>https://github.com/nranjbaran/ecommerce-saga-choreography</url>
 
-	<dependencies>
+    <developers>
+        <developer>
+            <name>Nima Ranjbaran</name>
+            <email>nima.ranjbaran@hotmail.com</email>
+            <organization>Personal Project</organization>
+            <roles>
+                <role>Software Engineer</role>
+            </roles>
+        </developer>
+    </developers>
 
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
-		</dependency>
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
 
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-tomcat</artifactId>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-	</dependencies>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.1.5</version>
+        <relativePath/>
+    </parent>
 
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-			</plugin>
-		</plugins>
-	</build>
+    <modules>
+        <module>common-lib</module>        <!-- Shared library (no Spring Boot) -->
+        <module>order-service</module>      <!-- Initiates the saga -->
+        <module>payment-service</module>    <!-- Process payments -->
+        <module>inventory-service</module>  <!-- Manage stock -->
+        <module>notification-service</module> <!-- Send notifications -->
+    </modules>
+
+    <properties>
+        <java.version>21</java.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- ===== Production environment profiles ===== -->
+        <env.production.rabbitmq.service>RABBITMQ_SERVICE_HOST</env.production.rabbitmq.service>
+        <env.production.db.service.host>DB_SERVICE_HOST</env.production.db.service.host>
+        <env.production.redis.service.host>REDIS_SERVICE_HOST</env.production.redis.service.host>
+
+        <!-- ===== Spring Cloud Version ===== -->
+        <!-- Includes: Spring Cloud Stream, Spring Cloud Function, Spring Cloud Circuit Breaker -->
+        <spring-cloud.version>2022.0.4</spring-cloud.version>
+
+        <!-- ===== Testcontainers Version ===== -->
+        <testcontainers.version>1.18.1</testcontainers.version>
+
+        <!-- ===== Other Library Versions ===== -->
+        <lombok.version>1.18.30</lombok.version>           <!-- Boilerplate reduction -->
+        <guava.version>32.1.3-jre</guava.version>          <!-- Google utilities -->
+        <jackson.version>2.15.2</jackson.version>          <!-- JSON processing -->
+        <stripe.version>24.0.0</stripe.version>            <!-- Payment gateway -->
+        <flyway.version>9.16.3</flyway.version>            <!-- Flyway -->
+        <twilio.version>9.14.0</twilio.version>            <!-- SMS service -->
+        <sendgrid.version>4.10.1</sendgrid.version>        <!-- Email service -->
+
+        <!-- ===== Maven Plugin Versions ===== -->
+        <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.0.0-M9</maven-surefire-plugin.version>
+        <spotless-plugin.version>2.38.0</spotless-plugin.version>
+    </properties>
+
+    <!-- ========================================================================
+                                DEPENDENCY MANAGEMENT
+         ======================================================================== -->
+    <dependencyManagement>
+        <dependencies>
+
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- ===== COMMON LIBRARY - Shared code for ALL services ===== -->
+            <!--
+                This is OUR custom library. It contains:
+                - SagaEvent (the message format)
+                - DTOs (OrderDTO, PaymentDTO, etc.)
+                - Exceptions (SagaException, etc.)
+                - Utilities (JsonUtil, TraceIdUtil)
+                - Constants (EventChannels, SagaConstants)
+
+                Every service module depends on this!
+            -->
+            <dependency>
+                <groupId>com.saga.choreography</groupId>
+                <artifactId>common-lib</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jsr310</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-database-postgresql</artifactId>
+                <version>${flyway.version}</version>
+            </dependency>
+
+            <!-- ===== STRIPE - Payment Processing ===== -->
+            <!-- Used by payment-service to charge credit cards -->
+            <dependency>
+                <groupId>com.stripe</groupId>
+                <artifactId>stripe-java</artifactId>
+                <version>${stripe.version}</version>
+            </dependency>
+
+            <!-- ===== TWILIO - SMS Notifications ===== -->
+            <!-- Used by notification-service to send text messages -->
+            <dependency>
+                <groupId>com.twilio.sdk</groupId>
+                <artifactId>twilio</artifactId>
+                <version>${twilio.version}</version>
+            </dependency>
+
+            <!-- ===== SENDGRID - Email Delivery ===== -->
+            <!-- Alternative to SMTP for sending emails -->
+            <dependency>
+                <groupId>com.sendgrid</groupId>
+                <artifactId>sendgrid-java</artifactId>
+                <version>${sendgrid.version}</version>
+            </dependency>
+
+            <!-- ===== GUAVA - Google Core Libraries ===== -->
+            <!--
+                Useful for:
+                - Caching (CacheBuilder)
+                - Collections (ImmutableMap, Multimap)
+                - Concurrency (Striped locks)
+                - String utilities
+            -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
+            </dependency>
+
+            <!-- Micrometer for metrics -->
+            <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>micrometer-core</artifactId>
+                <version>1.11.5</version>
+            </dependency>
+
+            <!-- Prometheus registry -->
+            <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>micrometer-registry-prometheus</artifactId>
+                <version>1.11.5</version>
+            </dependency>
+
+            <!-- Micrometer tracing -->
+            <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>micrometer-tracing</artifactId>
+                <version>1.1.5</version>
+            </dependency>
+
+            <!-- Brave tracer (for Zipkin/Jaeger) -->
+            <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>micrometer-tracing-bridge-brave</artifactId>
+                <version>1.1.5</version>
+            </dependency>
+
+            <!-- Zipkin reporter -->
+            <dependency>
+                <groupId>io.zipkin.reporter2</groupId>
+                <artifactId>zipkin-reporter-brave</artifactId>
+                <version>2.16.4</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>context-propagation</artifactId>
+                <version>1.1.2</version>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+    <!-- ========================================================================
+                                    BUILD CONFIGURATION
+         ======================================================================== -->
+    <build>
+        <pluginManagement>
+            <plugins>
+
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <configuration>
+                        <excludes>
+                            <exclude>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                            </exclude>
+                        </excludes>
+                    </configuration>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven-compiler-plugin.version}</version>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                        <parameters>true</parameters>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
+
+                <!-- ===== MAVEN SURFIRE PLUGIN ===== -->
+                <!-- Runs unit and integration tests during the test phase -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven-surefire-plugin.version}</version>
+                    <configuration>
+                        <useModulePath>false</useModulePath>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>${maven-surefire-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>com.diffplug.spotless</groupId>
+                    <artifactId>spotless-maven-plugin</artifactId>
+                    <version>${spotless-plugin.version}</version>
+                    <configuration>
+                        <java>
+                            <googleJavaFormat>
+                                <version>1.17.0</version>
+                                <style>AOSP</style>
+                            </googleJavaFormat>
+                            <removeUnusedImports/>
+                            <trimTrailingWhitespace/>
+                            <endWithNewline/>
+                        </java>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>3.3.0</version>
+                </plugin>
+
+                <!-- Creates a JAR with source code for debugging -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>3.2.1</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>3.6.0</version>
+                </plugin>
+
+            </plugins>
+        </pluginManagement>
+    </build>
+
+    <!-- Profiles allow different configurations for different environments.
+         Example: dev vs prod vs test
+         Activate with: `mvn clean install -P docker`
+    -->
+    <profiles>
+        <!-- ===== DOCKER PROFILE ===== -->
+        <!--
+            Activates when building Docker images.
+            Sets properties that services can use in their application.yml
+        -->
+        <profile>
+            <id>docker</id>
+            <properties>
+                <spring.profiles.active>docker</spring.profiles.active>
+                <docker.host>rabbitmq</docker.host>  <!-- Service name in docker-compose -->
+                <docker.db.host>postgres</docker.db.host>
+                <docker.redis.host>redis</docker.redis.host>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>dev</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <spring.profiles.active>default</spring.profiles.active>
+                <docker.host>localhost</docker.host>
+                <docker.db.host>localhost</docker.db.host>
+                <docker.redis.host>localhost</docker.redis.host>
+            </properties>
+        </profile>
+
+        <!-- For production deployments (Kubernetes, etc.) -->
+        <profile>
+            <id>prod</id>
+            <properties>
+                <spring.profiles.active>prod</spring.profiles.active>
+                <!-- These should be overridden by environment variables -->
+                <docker.host>${env.production.rabbitmq.service}</docker.host>
+                <docker.db.host>${env.production.db.service.host}</docker.db.host>
+                <docker.redis.host>${env.production.redis.service.host}</docker.redis.host>
+            </properties>
+        </profile>
+
+    </profiles>
+
+    <repositories>
+        <repository>
+            <id>central</id>
+            <name>Maven Central</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+
+        <repository>
+            <id>spring-milestones</id>
+            <name>Spring Milestones</name>
+            <url>https://repo.spring.io/milestone</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>central</id>
+            <name>Maven Central</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </pluginRepository>
+    </pluginRepositories>
 
 </project>
