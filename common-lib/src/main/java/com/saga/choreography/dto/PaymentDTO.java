@@ -1,5 +1,6 @@
 package com.saga.choreography.dto;
 
+import com.saga.choreography.event.payment.PaymentStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -50,13 +51,13 @@ public class PaymentDTO {
     /**
      * Currency code
      */
-    private String currency;
+    private Currency currency;
 
     /**
      * Payment method (CREDIT_CARD, PAYPAL, etc.)
      */
     @NotBlank(message = "Payment method is required")
-    private String paymentMethod;
+    private PaymentType paymentType;
 
     /**
      * Last 4 digits of card (if credit card)
@@ -77,7 +78,7 @@ public class PaymentDTO {
     /**
      * Payment status (PENDING, COMPLETED, FAILED, REFUNDED)
      */
-    private String status;
+    private PaymentStatus status;
 
     /**
      * Failure reason (if payment failed)

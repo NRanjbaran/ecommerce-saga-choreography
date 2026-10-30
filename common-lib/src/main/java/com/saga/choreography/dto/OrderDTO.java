@@ -1,6 +1,8 @@
 package com.saga.choreography.dto;
 
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -60,8 +62,7 @@ public class OrderDTO {
     /**
      * Currency code (USD, EUR, etc.)
      */
-    @Pattern(regexp = "^[A-Z]{3}$", message = "Currency must be 3-letter code")
-    private String currency;
+    private Currency currency;
 
     /**
      * Current order status (PENDING, CONFIRMED, CANCELLED, etc.)
@@ -71,7 +72,7 @@ public class OrderDTO {
     /**
      * Payment method (CREDIT_CARD, PAYPAL, BANK_TRANSFER)
      */
-    private String paymentMethod;
+    private PaymentType paymentType;
 
     /**
      * When the order was created
@@ -93,52 +94,4 @@ public class OrderDTO {
      */
     private String deliveryNotes;
 
-    // ========================================================================
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class OrderItem {
-        /**
-         * Product ID from catalog service
-         */
-        @NotNull(message = "Product ID is required")
-        private Long productId;
-
-        /**
-         * Product name (for display)
-         */
-        private String productName;
-
-        /**
-         * Quantity ordered
-         */
-        @Min(value = 1, message = "Quantity must be at least 1")
-        @Max(value = 999, message = "Quantity cannot exceed 999")
-        private Integer quantity;
-
-        /**
-         * Price per unit at time of order
-         */
-        @Positive(message = "Unit price must be positive")
-        private BigDecimal unitPrice;
-
-        /**
-         * Total price for this item (quantity * unitPrice)
-         */
-        private BigDecimal subtotal;
-    }
-
-    // ========================================================================
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class ShippingAddress {
-        private String street;
-        private String city;
-        private String state;
-        private String postalCode;
-        private String country;
-    }
 }

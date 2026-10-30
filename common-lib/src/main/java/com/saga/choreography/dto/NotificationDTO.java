@@ -54,7 +54,7 @@ public class NotificationDTO {
     /** HTML content (for rich emails) */
     private String htmlContent;
 
-    /** Template name to use (e.g., "order-confirmation") */
+    /** Template name to use (Example: "order-confirmation") */
     private String templateName;
 
     /** Template variables (for dynamic content) */
@@ -85,6 +85,4 @@ public class NotificationDTO {
     /** When the notification was sent */
     private LocalDateTime sentAt;
 
-    /** Number of retry attempts */
-    private Integer retryCount;
 }
