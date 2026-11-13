@@ -1,95 +1,132 @@
 package com.saga.choreography.event;
 
+import com.saga.choreography.event.compensation.CompensationRequestedEvent;
+import com.saga.choreography.event.inventory.InventoryFailedEvent;
+import com.saga.choreography.event.inventory.InventoryReservedEvent;
+import com.saga.choreography.event.order.OrderCancelledEvent;
+import com.saga.choreography.event.order.OrderConfirmedEvent;
+import com.saga.choreography.event.order.OrderCreatedEvent;
+import com.saga.choreography.event.order.OrderFailedEvent;
+import com.saga.choreography.event.payment.PaymentCompletedEvent;
+import com.saga.choreography.event.payment.PaymentFailedEvent;
+import com.saga.choreography.event.payment.PaymentRefundedEvent;
+
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 /**
- * ============================================================================
- * a list of all events in the saga
- * ============================================================================
+ * Canonical list of saga choreography event types.
  * <p>
- * Naming convention: {SERVICE}_{ACTION}_{STATUS}
- * - ORDER: Order service events
- * - PAYMENT: Payment service events
- * - INVENTORY: Inventory service events
- * - NOTIFICATION: Notification service events
- * <p>
- * Status types:
- * - REQUEST: Initial request (Example: PROCESS_PAYMENT_REQUEST)
- * - COMPLETED: Successful completion
- * - FAILED: Failed (triggers compensation)
- * - COMPENSATE: Rollback operation
- * <p>
- * ============================================================================
+ * Naming convention: {@code {SERVICE}_{ACTION}} / status suffix.
+ * Message headers and Jackson polymorphic type ids use {@link #name()}.
  */
 public enum EventType {
 
     // ========================================================================
     // ORDER SERVICE EVENTS
     // ========================================================================
-    /**
-     * Initial event - customer places an order
-     * Triggers: Payment service starts payment processing
-     */
-    ORDER_CREATED,
 
     /**
-     * All steps completed successfully
+     * Customer placed an order — payment starts processing.
      */
-    ORDER_CONFIRMED,
+    ORDER_CREATED(OrderCreatedEvent.class),
 
     /**
-     * Customer cancelled the order
-     * Triggers: Compensation in all services
+     * All saga steps completed successfully.
      */
-    ORDER_CANCELLED,
+    ORDER_CONFIRMED(OrderConfirmedEvent.class),
+
+    /**
+     * Customer cancelled the order — compensation may follow.
+     */
+    ORDER_CANCELLED(OrderCancelledEvent.class),
+
+    /**
+     * Order failed (e.g. inventory or payment terminal failure).
+     */
+    ORDER_FAILED(OrderFailedEvent.class),
 
     // ========================================================================
     // PAYMENT SERVICE EVENTS
     // ========================================================================
-    /**
-     * Payment service received ORDER_CREATED event
-     * Indicates payment processing has started
-     */
-    PAYMENT_PROCESSING,
 
     /**
-     * Payment was successful - charge customer
-     * Triggers: Inventory service to reserve items
+     * Payment processing has started.
      */
-    PAYMENT_COMPLETED,
+    PAYMENT_PROCESSING(null),
 
     /**
-     * Payment failed (insufficient funds, card declined)
-     * Triggers: Compensation - order should be cancelled
+     * Payment succeeded — inventory should reserve stock.
      */
-    PAYMENT_FAILED,
+    PAYMENT_COMPLETED(PaymentCompletedEvent.class),
 
     /**
-     * Payment was refunded (during compensation)
+     * Payment failed — order should fail / cancel.
      */
-    PAYMENT_REFUNDED,
+    PAYMENT_FAILED(PaymentFailedEvent.class),
+
+    /**
+     * Payment refunded during compensation.
+     */
+    PAYMENT_REFUNDED(PaymentRefundedEvent.class),
 
     // ========================================================================
     // INVENTORY SERVICE EVENTS
     // ========================================================================
 
     /**
-     * Items successfully reserved
-     * Triggers: Order confirmation
+     * Stock reserved — order can be confirmed.
      */
-    INVENTORY_RESERVED,
+    INVENTORY_RESERVED(InventoryReservedEvent.class),
 
     /**
-     * Not enough stock available
-     * Triggers: Payment refund compensation
+     * Insufficient stock — payment should compensate.
      */
-    INVENTORY_FAILED,
+    INVENTORY_FAILED(InventoryFailedEvent.class),
 
     // ========================================================================
-    // COMPENSATION EVENTS (for rollback)
+    // COMPENSATION
     // ========================================================================
 
     /**
-     * General compensation request - service should rollback
+     * Ask a prior service to roll back its work.
      */
-    COMPENSATION_REQUESTED
+    COMPENSATION_REQUESTED(CompensationRequestedEvent.class);
 
+    /**
+     * Message header key used when publishing events.
+     */
+    public static final String HEADER = "eventType";
+
+    private final Class<? extends BaseEvent> eventClass;
+
+    EventType(Class<? extends BaseEvent> eventClass) {
+        this.eventClass = eventClass;
+    }
+
+    private static final Map<Class<? extends BaseEvent>, EventType> BY_CLASS =
+            Arrays.stream(values())
+                    .filter(type -> type.eventClass != null)
+                    .collect(Collectors.toUnmodifiableMap(type -> type.eventClass, Function.identity()));
+
+    /**
+     * Resolves the {@link EventType} for a concrete saga event instance.
+     */
+    public static EventType from(BaseEvent event) {
+        if (event == null) {
+            throw new IllegalArgumentException("event must not be null");
+        }
+        return from(event.getClass());
+    }
+
+    /**
+     * Resolves the {@link EventType} for a concrete saga event class.
+     */
+    public static EventType from(Class<? extends BaseEvent> type) {
+        return Optional.ofNullable(BY_CLASS.get(type))
+                .orElseThrow(() -> new IllegalArgumentException("No EventType mapping for " + type.getName()));
+    }
 }

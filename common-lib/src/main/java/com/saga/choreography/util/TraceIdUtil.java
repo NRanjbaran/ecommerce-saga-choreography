@@ -1,71 +1,91 @@
 package com.saga.choreography.util;
 
+import io.micrometer.tracing.TraceContext;
+import io.micrometer.tracing.Tracer;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.stereotype.Component;
 
+import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Distributed tracing across services
- * <p>
- * Each request gets a unique trace ID that flows through all services
- * This allows correlating logs across different services
- * <p>
- * Usage:
- * - TraceIdUtil.generateTraceId() at the start of a request
- * - Include traceId in all events and logs
- * - Use MDC to automatically add traceId to log statements
- * <p>
+ * Distributed tracing helpers. Propagates trace IDs via MDC across saga steps.
  */
-public final class TraceIdUtil {
+@Component
+public class TraceIdUtil {
 
     private static final String TRACE_ID_KEY = "traceId";
+    private static final String SPAN_ID_KEY = "spanId";
+    private static final String PARENT_SPAN_ID_KEY = "parentSpanId";
 
-    private TraceIdUtil() {
+    private final Tracer tracer;
+
+    public TraceIdUtil(ObjectProvider<Tracer> tracerProvider) {
+        this.tracer = tracerProvider.getIfAvailable();
     }
 
-    /**
-     * Generate a new unique trace ID (UUID format)
-     */
-    public static String generateTraceId() {
-        return UUID.randomUUID().toString();
-    }
+    public String getCurrentTraceId() {
+        TraceContext context = getTraceContext();
 
-    /**
-     * Get current trace ID from MDC (Mapped Diagnostic Context)
-     */
-    public static String getCurrentTraceId() {
-        String traceId = MDC.get(TRACE_ID_KEY);
-        if (traceId == null) {
-            traceId = generateTraceId();
-            setCurrentTraceId(traceId);
+        if (context != null) {
+            String traceId = context.traceId();
+            MDC.put(TRACE_ID_KEY, traceId);
+            MDC.put(SPAN_ID_KEY, context.spanId());
+            Optional.ofNullable(context.parentId())
+                    .ifPresent(parentId -> MDC.put(PARENT_SPAN_ID_KEY, parentId));
+            return traceId;
         }
-        return traceId;
+
+        String fallbackTraceId = generateRandomTraceId();
+        setCurrentTraceId(fallbackTraceId);
+        return fallbackTraceId;
     }
 
-    /**
-     * Set trace ID in MDC for current thread
-     */
-    public static void setCurrentTraceId(String traceId) {
+    public String getCurrentSpanId() {
+        TraceContext context = getTraceContext();
+        return context != null ? context.spanId() : UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+    }
+
+    public String getCurrentParentSpanId() {
+        TraceContext context = getTraceContext();
+        return context != null ? context.parentId() : null;
+    }
+
+    public void setCurrentTraceId(String traceId) {
         if (traceId != null) {
             MDC.put(TRACE_ID_KEY, traceId);
         }
     }
 
-    /**
-     * Clear trace ID from MDC (when request completes)
-     */
-    public static void clearTraceId() {
-        MDC.remove(TRACE_ID_KEY);
+    public String getOrCreateTraceId(String existingTraceId) {
+        if (existingTraceId != null && !existingTraceId.isEmpty()) {
+            MDC.put(TRACE_ID_KEY, existingTraceId);
+            return existingTraceId;
+        }
+        return getCurrentTraceId();
     }
 
-    /**
-     * Create a trace ID from existing saga ID
-     * Ensures all events in a saga share the same trace ID
-     */
-    public static String fromSagaId(String sagaId) {
-        if (sagaId == null) {
-            return generateTraceId();
+    public void clearMDC() {
+        MDC.remove(TRACE_ID_KEY);
+        MDC.remove(SPAN_ID_KEY);
+        MDC.remove(PARENT_SPAN_ID_KEY);
+    }
+
+    private String generateRandomTraceId() {
+        return UUID.randomUUID().toString().replace("-", "");
+    }
+
+    private TraceContext getTraceContext() {
+        if (tracer == null) {
+            return null;
         }
-        return sagaId;
+        return tracer.currentTraceContext().context();
+    }
+
+    @PreDestroy
+    public void cleanup() {
+        clearMDC();
     }
 }
